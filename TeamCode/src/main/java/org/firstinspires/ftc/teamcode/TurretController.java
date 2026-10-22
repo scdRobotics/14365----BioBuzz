@@ -8,6 +8,12 @@ public class TurretController extends ComponentControllerBase
 
     private final DcMotor turretMotor;
 
+    private double power = 0;
+
+    private boolean aLastTick = false;
+
+    private boolean bLastTick = false;
+
     private TurretController(String motorName)
     {
         turretMotor = opMode.hardwareMap.dcMotor.get(motorName);
@@ -18,7 +24,7 @@ public class TurretController extends ComponentControllerBase
         TurretController.singleton = new TurretController("turret");
     }
 
-    public void setPower(float power)
+    public void setPower(double power)
     {
         turretMotor.setPower(power);
     }
@@ -26,5 +32,31 @@ public class TurretController extends ComponentControllerBase
     public void stopTurret()
     {
         turretMotor.setPower(0);
+    }
+
+    @Override
+    public void tick()
+    {
+        if (opMode.gamepad1.a && !aLastTick)
+        {
+            power += 10;
+            aLastTick = true;
+        }
+        else
+        {
+            aLastTick = false;
+        }
+
+        if (opMode.gamepad1.b && !bLastTick)
+        {
+            power -= 10;
+            bLastTick = true;
+        }
+        else
+        {
+            bLastTick = false;
+        }
+
+        setPower(power);
     }
 }
