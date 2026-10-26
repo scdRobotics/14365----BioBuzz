@@ -19,7 +19,7 @@ public class TurretController extends ComponentControllerBase
         turretMotor = opMode.hardwareMap.dcMotor.get(motorName);
     }
 
-    public static void setSingleton(TurretController singleton)
+    public static void createSingleton()
     {
         TurretController.singleton = new TurretController("turret");
     }
@@ -57,6 +57,10 @@ public class TurretController extends ComponentControllerBase
             bLastTick = false;
         }
 
+        opMode.telemetry.addData("Power:", power);
+
+
         setPower(power);
+        opMode.telemetry.update();
     }
 }
