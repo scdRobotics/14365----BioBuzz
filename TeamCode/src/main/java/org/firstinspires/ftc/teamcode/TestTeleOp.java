@@ -10,6 +10,7 @@ public class TestTeleOp extends LinearOpMode {
     {
         Drivetrain.createSingleton();
         IntakeController.createSingleton();
+        TurretController.createSingleton();
 
         ComponentControllerBase.initControllers(this);
 
