@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
-/** Ideal projectile model. It does not measure ball speed or predict motor power. */
 public final class ShooterBallistics {
     private static final double GRAVITY_MPS2 = 9.80665;
 
