@@ -2,7 +2,24 @@ package org.firstinspires.ftc.teamcode.shooter;
 
 /** Encoder conversion uses motor OUTPUT revolutions; do not apply internal gearing again. */
 public final class ShooterEncoderRpm {
+    // REV Hub target-velocity command range (ticks/second).
+    public static final double MAX_TARGET_TICKS_PER_SECOND = 32767.0;
+
     private ShooterEncoderRpm() { }
+
+    public static double targetTicksPerSecond(double flywheelRpm, double ticksPerMotorRev,
+                                              int motorTeeth, int flywheelTeeth) {
+        requirePositive(ticksPerMotorRev, "Encoder ticks per motor output revolution");
+        requireTeeth(motorTeeth, flywheelTeeth);
+        if (!Double.isFinite(flywheelRpm) || flywheelRpm < 0.0) {
+            throw new IllegalArgumentException("Target flywheel RPM must be finite and nonnegative");
+        }
+        double ticksPerSecond = flywheelRpm / 60.0 * flywheelTeeth / motorTeeth * ticksPerMotorRev;
+        if (!Double.isFinite(ticksPerSecond) || ticksPerSecond > MAX_TARGET_TICKS_PER_SECOND) {
+            throw new IllegalArgumentException("Target exceeds REV Hub velocity command range; lower RPM");
+        }
+        return ticksPerSecond;
+    }
 
     public static Reading fromTicksPerSecond(double signedTicksPerSecond,
                                              double ticksPerMotorRev,

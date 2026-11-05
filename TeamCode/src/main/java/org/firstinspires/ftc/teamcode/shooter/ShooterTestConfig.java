@@ -22,23 +22,20 @@ public final class ShooterTestConfig {
     // Displayed as experiment metadata. Mass cancels from the ideal trajectory.
     public static final double BALL_MASS_KG = 0.3;
 
-    // Encoder measures speed while setPower still runs in RUN_WITHOUT_ENCODER.
-    public static final boolean USE_ENCODER_RPM = true;
+    // Closed-loop setVelocity control requires the motor encoder.
+    // This is CONTACT WHEEL RPM, not motor RPM or a 0..1 power fraction.
+    public static final double INITIAL_FLYWHEEL_RPM = 0.0;
     // Ticks per revolution of the MOTOR OUTPUT shaft, including its internal gearbox.
     // NaN uses the configured motor type; an Unspecified Motor is not trusted.
     // Alternatively, calibrate by hand-turning the contact wheel with the motor OFF.
     public static final double ENCODER_TICKS_PER_MOTOR_REV = Double.NaN;
     public static final double ENCODER_CALIBRATION_FLYWHEEL_TURNS = 10.0;
 
-    // External measurement of the contact wheel BEFORE the shot, not motor RPM.
-    // Used only when USE_ENCODER_RPM is false. It is never an estimate from power.
-    // It can also be entered with the gamepad during the manual-RPM test.
-    public static final double MEASURED_FLYWHEEL_RPM = Double.NaN;
-
     // Leave unset for a first calibration, then copy a confirmed result here.
     public static final double ETA = Double.NaN;
 
-    // Reported hit tests, all at the same 25.6 cm launch height and 75 degree angle.
+    // Historical open-loop power tests; NOT used to command velocity or estimate RPM.
+    // All were at the same 25.6 cm launch height and 75 degree angle.
     // Keep these reference conditions fixed when changing the current target above.
     public static final double POWER_REFERENCE_LAUNCH_HEIGHT_METERS = 0.256;
     public static final double POWER_REFERENCE_ANGLE_DEGREES = 75.0;
