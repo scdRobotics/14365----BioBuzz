@@ -9,10 +9,10 @@ public final class ShooterTestConfig {
 
     // x is horizontal position; y is height, measured from one shared reference.
     public static final double LAUNCH_X_METERS = 0.0;
-    public static final double LAUNCH_HEIGHT_METERS = 0.256; // 25.6 cm
-    public static final double TARGET_X_METERS = 1.20; // latest target: 120 cm
-    public static final double TARGET_HEIGHT_METERS = 1.5494; // 154.94 cm
-    public static final double LAUNCH_ANGLE_DEGREES = 75;
+    public static final double LAUNCH_HEIGHT_METERS = 0.30; // 30 cm
+    public static final double TARGET_X_METERS = 0.99; // 99 cm
+    public static final double TARGET_HEIGHT_METERS = 1.22; // 122 cm
+    public static final double LAUNCH_ANGLE_DEGREES = 60;
 
     // Contact wheel radius, NOT sprocket radius.
     public static final double FLYWHEEL_RADIUS_METERS = 0.0508;
@@ -24,11 +24,15 @@ public final class ShooterTestConfig {
 
     // Closed-loop setVelocity control requires the motor encoder.
     // This is CONTACT WHEEL RPM, not motor RPM or a 0..1 power fraction.
-    public static final double INITIAL_FLYWHEEL_RPM = 0.0;
+    // Same velocity command as the old displayed 23.3 RPM with the incorrect 2786 scale.
+    // The motor stays disabled until A is pressed.
+    public static final double INITIAL_FLYWHEEL_RPM = 2296.5;
     // Ticks per revolution of the MOTOR OUTPUT shaft, including its internal gearbox.
     // NaN uses the configured motor type; an Unspecified Motor is not trusted.
     // Alternatively, calibrate by hand-turning the contact wheel with the motor OFF.
-    public static final double ENCODER_TICKS_PER_MOTOR_REV = Double.NaN;
+    // Measured: 10 contact-wheel turns -> 212 ticks; 212 / (10 * 15 / 20).
+    // Keep the measured value pending repeat calibration; do not restore the generic 2786 default.
+    public static final double ENCODER_TICKS_PER_MOTOR_REV = 28.266667;
     public static final double ENCODER_CALIBRATION_FLYWHEEL_TURNS = 10.0;
 
     // Leave unset for a first calibration, then copy a confirmed result here.

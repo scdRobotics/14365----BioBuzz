@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import java.util.Locale;
@@ -16,6 +17,12 @@ public final class ShooterTest extends LinearOpMode {
     private double encoderTicksPerSecond = Double.NaN;
     private String encoderScaleSource = "UNSET";
     private String encoderError = "";
+    private String velocityPidf = "UNAVAILABLE";
+    private final ShooterEncoderStopMonitor stopMonitor = new ShooterEncoderStopMonitor(500);
+    private Integer encoderPosition;
+    private String encoderPositionError = "";
+    private boolean motorOutputEnabled;
+    private int calibrationRequests;
     private ShooterEncoderRpm.Reading encoderReading;
     private boolean calibratingEncoder;
     private int calibrationStartTicks;
@@ -39,7 +46,9 @@ public final class ShooterTest extends LinearOpMode {
         motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor.setDirection(DcMotor.Direction.REVERSE);
+        motor.setMotorDisable();
         configureEncoderScale(motor);
+        readVelocityPidf(motor);
 
         double targetRpm = positiveOrZero(ShooterTestConfig.INITIAL_FLYWHEEL_RPM);
         boolean enabled = false;
@@ -70,31 +79,34 @@ public final class ShooterTest extends LinearOpMode {
                 Buttons current = new Buttons(gamepad1);
                 double oldTargetRpm = targetRpm;
                 boolean stop = current.b;
+                boolean calibrationRequested = current.encoderCalibrate && !previous.encoderCalibrate;
+                if (calibrationRequested) calibrationRequests++;
 
                 if (stop) {
                     targetRpm = 0.0;
                     enabled = false;
                     shot = null;
                     calibratingEncoder = false;
-                    status = "Stopped; shot lock cleared.";
-                } else if (current.encoderCalibrate && !previous.encoderCalibrate) {
+                    status = current.encoderCalibrate
+                            ? "B has priority. Release B and RB/R1, then press RB/R1 to calibrate."
+                            : "Output disabled; shot lock cleared. Release B; press RB/R1 when stopped.";
+                } else if (calibrationRequested) {
                     if (enabled) {
                         status = "Pause the motor with A or B BEFORE hand-turn calibration.";
-                    } else if (!calibratingEncoder && (!Double.isFinite(encoderTicksPerSecond)
-                            || Math.abs(encoderTicksPerSecond) > 1.0)) {
-                        status = "Wait for the wheel to stop completely before starting hand-turn calibration.";
+                    } else if (encoderPosition == null) {
+                        status = "Cannot calibrate: " + encoderPositionError;
+                    } else if (!calibratingEncoder && !stopMonitor.isStopped()) {
+                        status = "Wait for encoder POSITION to stay still 0.5 s, then release/press RB/R1 again.";
                     } else {
                         targetRpm = 0.0;
                         shot = null;
                         try {
                             if (!calibratingEncoder) {
-                                // A zero velocity loop can resist hand-turning; release the bridge.
-                                motor.setVelocity(0.0);
-                                motor.setMotorDisable();
+                                disableMotor(motor);
                                 calibrationStartTicks = motor.getCurrentPosition();
                                 calibratingEncoder = true;
                                 status = String.format(Locale.US,
-                                        "Motor OFF. Turn CONTACT WHEEL %.1f full turns one way, then press R-stick.",
+                                        "Output DISABLED. Turn CONTACT WHEEL %.1f full turns one way, then press RB/R1.",
                                         ShooterTestConfig.ENCODER_CALIBRATION_FLYWHEEL_TURNS);
                             } else {
                                 ticksPerMotorRev = ShooterEncoderRpm.calibrateTicksPerMotorRev(
@@ -114,10 +126,12 @@ public final class ShooterTest extends LinearOpMode {
                         }
                     }
                 } else if (!calibratingEncoder) {
-                    double increment = current.fineRpm ? 10.0 : 100.0;
-                    if (current.up && !previous.up) targetRpm += increment;
-                    if (current.down && !previous.down) targetRpm -= increment;
-                    targetRpm = Math.max(0.0, targetRpm);
+                    if (current.up && !previous.up) targetRpm += 10.0;
+                    if (current.down && !previous.down) targetRpm -= 10.0;
+                    if (current.right && !previous.right) targetRpm += 3.0;
+                    if (current.left && !previous.left) targetRpm -= 3.0;
+                    // Round to a tenth to prevent accumulated fine-step drift.
+                    targetRpm = Math.max(0.0, Math.round(targetRpm * 10.0) / 10.0);
 
                     if (oldTargetRpm != targetRpm) {
                         shot = null;
@@ -128,6 +142,8 @@ public final class ShooterTest extends LinearOpMode {
                         if (enabled) {
                             shot = null;
                             status = "Velocity control enabled. Wait for stable RPM before locking the shot.";
+                        } else {
+                            status = "Output disabled; target RPM and any locked shot retained.";
                         }
                     }
 
@@ -186,24 +202,39 @@ public final class ShooterTest extends LinearOpMode {
                         status = "Motor OFF: " + invalidVelocity.getMessage();
                     }
                 }
-                // setVelocity re-enables the Hub output: do not call it while hand-turning.
-                if (!calibratingEncoder) motor.setVelocity(commandTicksPerSecond);
+                if (enabled) {
+                    // Mark before the call so finally also disables output if the command fails.
+                    motorOutputEnabled = true;
+                    motor.setVelocity(commandTicksPerSecond);
+                } else {
+                    // Zero velocity is an active loop. Keep paused/calibrating output disabled.
+                    disableMotor(motor);
+                }
                 showTelemetry(targetRpm, enabled, commandTicksPerSecond, eta,
                         solution, geometryError, shot, status);
                 previous = current;
                 sleep(20);
             }
         } finally {
-            motor.setVelocity(0.0);
+            disableMotor(motor);
         }
     }
 
     private void showTelemetry(double targetRpm, boolean enabled, double commandTicksPerSecond, double eta,
                                ShooterBallistics.Solution solution, String geometryError,
                                ShotSnapshot shot, String status) {
-        telemetry.addLine("Up/down: wheel RPM +/-100 | hold LT: +/-10 | A: run/pause | B: zero");
-        telemetry.addLine("R-stick, motor OFF: begin/end hand-turn encoder calibration");
-        telemetry.addLine("X: lock measured pre-shot RPM | Y: confirm actual target hit");
+        telemetry.addData("Control state", calibratingEncoder ? "HAND-TURN CALIBRATION - OUTPUT DISABLED"
+                : enabled ? "RUNNING" : "PAUSED - OUTPUT DISABLED");
+        telemetry.addData("Status", status);
+        telemetry.addData("Calibration (RB/R1)", calibrationHint(enabled));
+        telemetry.addData("RB/R1 calibration presses received", calibrationRequests);
+        telemetry.addData("Encoder position / stationary seconds", "%s / %.2f",
+                encoderPosition == null ? "UNAVAILABLE" : encoderPosition.toString(),
+                stopMonitor.stationarySeconds());
+        if (calibratingEncoder && encoderPosition != null) {
+            telemetry.addData("Hand-turn encoder counts", (long) (encoderPosition - calibrationStartTicks));
+        }
+        if (!encoderPositionError.isEmpty()) telemetry.addData("Encoder position error", encoderPositionError);
         telemetry.addData("Motor", ShooterTestConfig.MOTOR_NAME);
         telemetry.addData("Target wheel RPM selected / commanded", "%.1f / %.1f", targetRpm,
                 enabled ? targetRpm : 0.0);
@@ -217,8 +248,12 @@ public final class ShooterTest extends LinearOpMode {
         telemetry.addData("Encoder ticks/s (signed)", rpmValue(encoderTicksPerSecond));
         telemetry.addData("Ticks/motor output rev", value(ticksPerMotorRev));
         telemetry.addData("Encoder scale source", encoderScaleSource);
+        telemetry.addData("Hub velocity PIDF (current)", velocityPidf);
         if (!encoderError.isEmpty()) telemetry.addData("Encoder", encoderError);
         if (calibratingEncoder) telemetry.addLine("HAND-TURN CALIBRATION: motor output DISABLED.");
+        telemetry.addLine("D-pad up/down: RPM +/-10 | right/left: +/-3 | A: run/pause | B: zero");
+        telemetry.addLine("RB/R1 (right SHOULDER button): begin/end calibration, motor OFF");
+        telemetry.addLine("X: lock measured pre-shot RPM | Y: confirm actual target hit");
         telemetry.addData("Chain teeth: motor -> flywheel", "%d -> %d",
                 ShooterTestConfig.MOTOR_SPROCKET_TEETH, ShooterTestConfig.FLYWHEEL_SPROCKET_TEETH);
         telemetry.addData("Launch angle (deg)", value(ShooterTestConfig.LAUNCH_ANGLE_DEGREES));
@@ -255,12 +290,27 @@ public final class ShooterTest extends LinearOpMode {
             telemetry.addData("Locked shot: target / measured wheel RPM", "%.1f / %.1f",
                     shot.targetRpm, shot.flywheelRpm);
         }
-        telemetry.addData("Status", status);
         telemetry.update();
     }
 
     private static double positiveOrZero(double value) {
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
+    private String calibrationHint(boolean enabled) {
+        if (!isStarted()) return "先在 Driver Station 点 START，再按 B 停机并松开。";
+        if (enabled) return "第1步：按 B 停机，然后松开 B。";
+        if (gamepad1.b) return "请先松开 B，再按右肩键 RB/R1。";
+        if (calibratingEncoder) {
+            return String.format(Locale.US, "第2步：手转发射轮 %.1f 圈，再按 RB/R1 完成。",
+                    ShooterTestConfig.ENCODER_CALIBRATION_FLYWHEEL_TURNS);
+        }
+        if (encoderPosition == null) return "编码器位置读取失败，请查看 Status。";
+        if (!stopMonitor.isStopped()) return "等待发射轮完全停稳，显示 READY 后按 RB/R1。";
+        if ("Hand-turned flywheel calibration".equals(encoderScaleSource)) {
+            return "标定已完成！记录每转计数；按 RB/R1 可重新标定。";
+        }
+        return "READY：按右肩键 RB/R1 开始标定，按一次后松开。";
     }
 
     private void configureEncoderScale(DcMotorEx motor) {
@@ -271,11 +321,33 @@ public final class ShooterTest extends LinearOpMode {
         }
         MotorConfigurationType type = motor.getMotorType();
         if (type == null || "Motor".equals(type.getXmlTag())) {
-            encoderScaleSource = "Unspecified motor - R-stick calibration needed";
+            encoderScaleSource = "Unspecified motor - RB/R1 calibration needed";
             return;
         }
         ticksPerMotorRev = type.getTicksPerRev();
         encoderScaleSource = "Robot config (verify actual motor): " + type.getName();
+    }
+
+    private void readVelocityPidf(DcMotorEx motor) {
+        try {
+            PIDFCoefficients coefficients = motor.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
+            velocityPidf = coefficients == null ? "UNAVAILABLE" : String.format(Locale.US,
+                    "P=%.6g I=%.6g D=%.6g F=%.6g (%s)", coefficients.p, coefficients.i,
+                    coefficients.d, coefficients.f, coefficients.algorithm);
+        } catch (RuntimeException readError) {
+            velocityPidf = "UNAVAILABLE: " + readError.getMessage();
+        }
+    }
+
+    private void disableMotor(DcMotorEx motor) {
+        try {
+            // Clear an old running target once; setVelocity itself re-enables the bridge.
+            if (motorOutputEnabled) motor.setVelocity(0.0);
+        } finally {
+            motor.setMotorDisable();
+            if (motorOutputEnabled) stopMonitor.reset();
+            motorOutputEnabled = false;
+        }
     }
 
     private void readEncoder(DcMotorEx motor) {
@@ -288,7 +360,17 @@ public final class ShooterTest extends LinearOpMode {
                     ShooterTestConfig.FLYWHEEL_SPROCKET_TEETH);
             encoderError = "";
         } catch (RuntimeException readError) {
-            encoderError = readError.getMessage() + "; check ticks/rev or use R-stick calibration";
+            encoderError = readError.getMessage()
+                    + "; check ticks/rev or use RB/R1 calibration";
+        }
+        try {
+            encoderPosition = motor.getCurrentPosition();
+            stopMonitor.observe(encoderPosition, System.nanoTime());
+            encoderPositionError = "";
+        } catch (RuntimeException positionError) {
+            encoderPosition = null;
+            stopMonitor.reset();
+            encoderPositionError = "Cannot read encoder position: " + positionError.getMessage();
         }
     }
 
@@ -313,13 +395,13 @@ public final class ShooterTest extends LinearOpMode {
     }
 
     private static final class Buttons {
-        final boolean a, b, x, y, up, down, fineRpm, encoderCalibrate;
+        final boolean a, b, x, y, up, down, left, right, encoderCalibrate;
 
         Buttons(Gamepad gamepad) {
             a = gamepad.a; b = gamepad.b; x = gamepad.x; y = gamepad.y;
             up = gamepad.dpad_up; down = gamepad.dpad_down;
-            fineRpm = gamepad.left_trigger > 0.5f;
-            encoderCalibrate = gamepad.right_stick_button;
+            left = gamepad.dpad_left; right = gamepad.dpad_right;
+            encoderCalibrate = gamepad.right_bumper;
         }
     }
 }
