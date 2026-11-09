@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.util.Range;
 
 public class TurretController extends ComponentControllerBase
 {
-    private static final int powerstepPercent = 10;
+    private static final int PowersPercent = 10;
     public static TurretController singleton;
 
     private final DcMotor turretMotor;
@@ -43,12 +43,12 @@ public class TurretController extends ComponentControllerBase
         boolean bPressed = opMode.gamepad1.b;
         if (aPressed && !aLastTick)
         {
-            powerPercent += powerstepPercent;
+            powerPercent += PowersPercent;
         }
 
         if (bPressed && !bLastTick)
         {
-            powerPercent -= powerstepPercent;
+            powerPercent -= PowersPercent;
         }
         aLastTick = aPressed;
         bLastTick = bPressed;
