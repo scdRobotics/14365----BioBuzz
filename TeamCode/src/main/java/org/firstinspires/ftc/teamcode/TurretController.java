@@ -1,14 +1,16 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.Range;
 
 public class TurretController extends ComponentControllerBase
 {
+    private static final int powerstepPercent = 10;
     public static TurretController singleton;
 
     private final DcMotor turretMotor;
 
-    private double power = 0;
+    private int powerPercent = 0;
 
     private boolean aLastTick = false;
 
@@ -37,29 +39,23 @@ public class TurretController extends ComponentControllerBase
     @Override
     public void tick()
     {
-        if (opMode.gamepad1.a && !aLastTick)
+        boolean aPressed = opMode.gamepad1.a;
+        boolean bPressed = opMode.gamepad1.b;
+        if (aPressed && !aLastTick)
         {
-            power += 10;
-            aLastTick = true;
-        }
-        else
-        {
-            aLastTick = false;
+            powerPercent += powerstepPercent;
         }
 
-        if (opMode.gamepad1.b && !bLastTick)
+        if (bPressed && !bLastTick)
         {
-            power -= 10;
-            bLastTick = true;
+            powerPercent -= powerstepPercent;
         }
-        else
-        {
-            bLastTick = false;
-        }
+        aLastTick = aPressed;
+        bLastTick = bPressed;
 
+        powerPercent = Range.clip(powerPercent, -100, 100);
+        double power = powerPercent / 100.0;
         opMode.telemetry.addData("Power:", power);
-
-
         setPower(power);
         opMode.telemetry.update();
     }

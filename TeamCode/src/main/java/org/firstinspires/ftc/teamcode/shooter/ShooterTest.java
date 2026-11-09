@@ -298,19 +298,19 @@ public final class ShooterTest extends LinearOpMode {
     }
 
     private String calibrationHint(boolean enabled) {
-        if (!isStarted()) return "先在 Driver Station 点 START，再按 B 停机并松开。";
-        if (enabled) return "第1步：按 B 停机，然后松开 B。";
-        if (gamepad1.b) return "请先松开 B，再按右肩键 RB/R1。";
+        if (!isStarted()) return "Tap START on the Driver Station. Press B to stop the shooter, then release B.";
+        if (enabled) return "Step 1. Press B to stop the shooter, then release B.";
+        if (gamepad1.b) return "Release B before pressing the right shoulder button (RB/R1).";
         if (calibratingEncoder) {
-            return String.format(Locale.US, "第2步：手转发射轮 %.1f 圈，再按 RB/R1 完成。",
+            return String.format(Locale.US, "Step 2. Turn the flywheel %.1f revolutions by hand, then press RB/R1 to finish.",
                     ShooterTestConfig.ENCODER_CALIBRATION_FLYWHEEL_TURNS);
         }
-        if (encoderPosition == null) return "编码器位置读取失败，请查看 Status。";
-        if (!stopMonitor.isStopped()) return "等待发射轮完全停稳，显示 READY 后按 RB/R1。";
+        if (encoderPosition == null) return "Could not read the encoder position. Check Status.";
+        if (!stopMonitor.isStopped()) return "Wait for the flywheel to stop. Press RB/R1 when READY appears.";
         if ("Hand-turned flywheel calibration".equals(encoderScaleSource)) {
-            return "标定已完成！记录每转计数；按 RB/R1 可重新标定。";
+            return "Calibration complete. Record the ticks per motor output revolution. Press RB/R1 to recalibrate.";
         }
-        return "READY：按右肩键 RB/R1 开始标定，按一次后松开。";
+        return "READY. Press and release the right shoulder button (RB/R1) to begin calibration.";
     }
 
     private void configureEncoderScale(DcMotorEx motor) {

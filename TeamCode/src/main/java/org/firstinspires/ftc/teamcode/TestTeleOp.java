@@ -9,11 +9,15 @@ public class TestTeleOp extends LinearOpMode {
     public void runOpMode()
     {
         ComponentControllerBase.setOpMode(this);
+        ComponentControllerBase.Controllers.clear();
 
         Drivetrain.createSingleton();
         IntakeController.createSingleton();
         TurretController.createSingleton();
 
+        ComponentControllerBase.Controllers.add(Drivetrain.singleton);
+        ComponentControllerBase.Controllers.add(IntakeController.singleton);
+        ComponentControllerBase.Controllers.add(TurretController.singleton);
         ComponentControllerBase.initControllers();
 
         waitForStart();
