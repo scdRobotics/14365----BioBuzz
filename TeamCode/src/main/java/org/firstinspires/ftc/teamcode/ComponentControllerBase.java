@@ -8,9 +8,13 @@ public abstract class ComponentControllerBase {
     public static ArrayList<ComponentControllerBase> Controllers = new ArrayList<>();
     protected static LinearOpMode opMode;
 
-    public static void initControllers(LinearOpMode mode)
+    public static void setOpMode(LinearOpMode mode)
     {
         opMode = mode;
+    }
+
+    public static void initControllers()
+    {
         for (ComponentControllerBase controller : Controllers)
         {
             controller.init();
