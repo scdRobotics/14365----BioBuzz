@@ -18,7 +18,7 @@ public final class ShooterTest extends LinearOpMode {
     private String encoderScaleSource = "UNSET";
     private String encoderError = "";
     private String velocityPidf = "UNAVAILABLE";
-    private final ShooterEncoderStopMonitor stopMonitor = new ShooterEncoderStopMonitor(500);
+    //private final ShooterEncoderStopMonitor stopMonitor = new ShooterEncoderStopMonitor(500);
     private Integer encoderPosition;
     private String encoderPositionError = "";
     private boolean motorOutputEnabled;
@@ -95,7 +95,7 @@ public final class ShooterTest extends LinearOpMode {
                         status = "Pause the motor with A or B BEFORE hand-turn calibration.";
                     } else if (encoderPosition == null) {
                         status = "Cannot calibrate: " + encoderPositionError;
-                    } else if (!calibratingEncoder && !stopMonitor.isStopped()) {
+                    } else if (!calibratingEncoder /*&& !stopMonitor.isStopped()*/) {
                         status = "Wait for encoder POSITION to stay still 0.5 s, then release/press RB/R1 again.";
                     } else {
                         targetRpm = 0.0;
@@ -229,8 +229,9 @@ public final class ShooterTest extends LinearOpMode {
         telemetry.addData("Calibration (RB/R1)", calibrationHint(enabled));
         telemetry.addData("RB/R1 calibration presses received", calibrationRequests);
         telemetry.addData("Encoder position / stationary seconds", "%s / %.2f",
-                encoderPosition == null ? "UNAVAILABLE" : encoderPosition.toString(),
-                stopMonitor.stationarySeconds());
+                encoderPosition == null ? "UNAVAILABLE" : encoderPosition.toString()
+                //, stopMonitor.stationarySeconds()
+                );
         if (calibratingEncoder && encoderPosition != null) {
             telemetry.addData("Hand-turn encoder counts", (long) (encoderPosition - calibrationStartTicks));
         }
@@ -306,7 +307,7 @@ public final class ShooterTest extends LinearOpMode {
                     ShooterTestConfig.ENCODER_CALIBRATION_FLYWHEEL_TURNS);
         }
         if (encoderPosition == null) return "编码器位置读取失败，请查看 Status。";
-        if (!stopMonitor.isStopped()) return "等待发射轮完全停稳，显示 READY 后按 RB/R1。";
+        //if (!stopMonitor.isStopped()) return "等待发射轮完全停稳，显示 READY 后按 RB/R1。";
         if ("Hand-turned flywheel calibration".equals(encoderScaleSource)) {
             return "标定已完成！记录每转计数；按 RB/R1 可重新标定。";
         }
@@ -345,7 +346,7 @@ public final class ShooterTest extends LinearOpMode {
             if (motorOutputEnabled) motor.setVelocity(0.0);
         } finally {
             motor.setMotorDisable();
-            if (motorOutputEnabled) stopMonitor.reset();
+            //if (motorOutputEnabled) stopMonitor.reset();
             motorOutputEnabled = false;
         }
     }
@@ -365,11 +366,11 @@ public final class ShooterTest extends LinearOpMode {
         }
         try {
             encoderPosition = motor.getCurrentPosition();
-            stopMonitor.observe(encoderPosition, System.nanoTime());
+            //stopMonitor.observe(encoderPosition, System.nanoTime());
             encoderPositionError = "";
         } catch (RuntimeException positionError) {
             encoderPosition = null;
-            stopMonitor.reset();
+            //stopMonitor.reset();
             encoderPositionError = "Cannot read encoder position: " + positionError.getMessage();
         }
     }

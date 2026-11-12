@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Drivetrain extends ComponentControllerBase{
-    public static Drivetrain singleton;
+    //public static Drivetrain singleton;
     private final DcMotor frontLeft;
     private final DcMotor backLeft;
     private final DcMotor frontRight;
@@ -24,9 +24,9 @@ public class Drivetrain extends ComponentControllerBase{
         this.backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
     }
 
-    public static void createSingleton()
+    public static Drivetrain createSingleton()
     {
-        singleton = new Drivetrain("frontLeft", "frontRight", "backLeft", "backRight");
+        return new Drivetrain("frontLeft", "frontRight", "backLeft", "backRight");
     }
 
     @Override

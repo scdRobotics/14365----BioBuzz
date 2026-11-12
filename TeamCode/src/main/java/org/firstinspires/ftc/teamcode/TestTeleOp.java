@@ -5,20 +5,27 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @TeleOp
 public class TestTeleOp extends LinearOpMode {
+    IntakeController intakeController;
+    TurretController turretController;
+    Drivetrain drivetrain;
+
     @Override
     public void runOpMode()
     {
-        Drivetrain.createSingleton();
-        IntakeController.createSingleton();
-        TurretController.createSingleton();
-
         ComponentControllerBase.initControllers(this);
+
+        drivetrain = Drivetrain.createSingleton();
+        intakeController = IntakeController.createSingleton();
+        turretController = TurretController.createSingleton();
 
         waitForStart();
 
         while(opModeIsActive())
         {
             ComponentControllerBase.tickControllers();
+            drivetrain.tick();
+            intakeController.tick();
+            turretController.tick();
         }
     }
 }
