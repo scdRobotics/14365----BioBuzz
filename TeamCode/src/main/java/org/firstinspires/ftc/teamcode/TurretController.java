@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 public class TurretController extends ComponentControllerBase
@@ -8,7 +10,8 @@ public class TurretController extends ComponentControllerBase
     private static final int PowersPercent = 10;
     public static TurretController singleton;
 
-    private final DcMotor turretMotor;
+    private final DcMotorEx turretMotor;
+    private final Servo turretServo;
 
     private int powerPercent = 0;
 
@@ -16,14 +19,17 @@ public class TurretController extends ComponentControllerBase
 
     private boolean bLastTick = false;
 
-    private TurretController(String motorName)
+    private TurretController(String motorName, String servoName)
     {
-        turretMotor = opMode.hardwareMap.dcMotor.get(motorName);
+        turretMotor = opMode.hardwareMap.get(DcMotorEx.class, motorName);
+        turretServo = opMode.hardwareMap.servo.get(servoName);
+
+        turretServo.resetDeviceConfigurationForOpMode();
     }
 
     public static void createSingleton()
     {
-        TurretController.singleton = new TurretController("turret");
+        TurretController.singleton = new TurretController("turret", "pollenServo");
     }
 
     public void setPower(double power)
@@ -39,24 +45,17 @@ public class TurretController extends ComponentControllerBase
     @Override
     public void tick()
     {
-        boolean aPressed = opMode.gamepad1.a;
-        boolean bPressed = opMode.gamepad1.b;
-        if (aPressed && !aLastTick)
-        {
-            powerPercent += PowersPercent;
-        }
+        boolean aPressed = opMode.gamepad2.a;
+        boolean bPressed = opMode.gamepad2.b;
 
-        if (bPressed && !bLastTick)
+        double angle = opMode.gamepad2.right_stick_x;
+        if(aPressed)
         {
-            powerPercent -= PowersPercent;
+            turretMotor.setVelocity(-830);
         }
-        aLastTick = aPressed;
-        bLastTick = bPressed;
-
-        powerPercent = Range.clip(powerPercent, -100, 100);
-        double power = powerPercent / 100.0;
-        opMode.telemetry.addData("Power:", power);
-        setPower(power);
+        if(bPressed) turretMotor.setVelocity(-300);
+        opMode.telemetry.addData("velocity", turretMotor.getVelocity());
         opMode.telemetry.update();
+        turretServo.setPosition(angle);
     }
 }
