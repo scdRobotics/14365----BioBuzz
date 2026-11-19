@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
@@ -19,12 +20,16 @@ public class TurretController extends ComponentControllerBase
 
     private boolean bLastTick = false;
 
-    private TurretController(String motorName, String servoName)
+    final double f = 18, p = 45;
+    final PIDFCoefficients pidfCoefficients = new PIDFCoefficients(p,0,0,f);
+
+    public TurretController(String motorName, String servoName)
     {
         turretMotor = opMode.hardwareMap.get(DcMotorEx.class, motorName);
         turretServo = opMode.hardwareMap.servo.get(servoName);
-
         turretServo.resetDeviceConfigurationForOpMode();
+        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        turretMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidfCoefficients);
     }
 
     public static void createSingleton()
@@ -35,6 +40,14 @@ public class TurretController extends ComponentControllerBase
     public void setPower(double power)
     {
         turretMotor.setPower(power);
+    }
+    public void setVelocity(double velocity)
+    {
+        turretMotor.setVelocity(velocity);
+    }
+    public double getVelocity()
+    {
+        return turretMotor.getVelocity();
     }
 
     public void stopTurret()
@@ -56,6 +69,6 @@ public class TurretController extends ComponentControllerBase
         if(bPressed) turretMotor.setVelocity(-300);
         opMode.telemetry.addData("velocity", turretMotor.getVelocity());
         opMode.telemetry.update();
-        turretServo.setPosition(angle);
+        if(opMode.gamepad2.right_stick_button) turretServo.setPosition((angle+1)/2);
     }
 }
