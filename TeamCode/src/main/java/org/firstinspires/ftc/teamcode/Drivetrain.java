@@ -39,8 +39,8 @@ public class Drivetrain extends ComponentControllerBase{
     @Override
     public void tick()
     {
-        double y = -opMode.gamepad1.left_stick_y; // Remember, Y stick is reversed!
-        double x = opMode.gamepad1.left_stick_x;
+        double y = opMode.gamepad1.left_stick_y; // Remember, Y stick is reversed!
+        double x = -opMode.gamepad1.left_stick_x;
         double rx = opMode.gamepad1.right_stick_x;
 
         frontLeft.setPower(y + x + rx);
