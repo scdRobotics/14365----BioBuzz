@@ -15,12 +15,13 @@ public class TestTeleOp extends LinearOpMode {
         IntakeController.createSingleton();
         TurretController.createSingleton();
         Transfer.createSingleton();
-
+        Odometry.createSingleton();
 
         ComponentControllerBase.Controllers.add(Drivetrain.singleton);
         ComponentControllerBase.Controllers.add(IntakeController.singleton);
         ComponentControllerBase.Controllers.add(TurretController.singleton);
         ComponentControllerBase.Controllers.add(Transfer.singleton);
+        ComponentControllerBase.Controllers.add(Odometry.singleton);
         ComponentControllerBase.initControllers();
 
         waitForStart();

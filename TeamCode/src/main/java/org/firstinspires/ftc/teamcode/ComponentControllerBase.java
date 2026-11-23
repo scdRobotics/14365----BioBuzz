@@ -27,6 +27,7 @@ public abstract class ComponentControllerBase {
         {
             controller.tick();
         }
+        opMode.telemetry.update();
     }
 
     public void tick()
