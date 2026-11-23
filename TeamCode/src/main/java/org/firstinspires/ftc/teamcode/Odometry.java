@@ -11,6 +11,11 @@ public class Odometry extends ComponentControllerBase
 {
     public static Odometry singleton;
     public GoBildaPinpointDriver odo = null;
+
+    private final static double resetX = -59.77;
+
+    private final static double resetY = 65.07;
+
     private Odometry()
     {
         odo = opMode.hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
@@ -37,19 +42,19 @@ public class Odometry extends ComponentControllerBase
 
         if(opMode.gamepad1.yWasPressed())
         {
-            setPosition(new Pose2D(DistanceUnit.INCH, -59.77,65.07, AngleUnit.DEGREES, 0));
+            setPosition(new Pose2D(DistanceUnit.INCH, resetX,resetY, AngleUnit.DEGREES, 0));
         }
         if(opMode.gamepad1.bWasPressed())
         {
-            setPosition(new Pose2D(DistanceUnit.INCH, -59.77,65.07, AngleUnit.DEGREES, -90));
+            setPosition(new Pose2D(DistanceUnit.INCH, resetX,resetY, AngleUnit.DEGREES, -90));
         }
         if(opMode.gamepad1.xWasPressed())
         {
-            setPosition(new Pose2D(DistanceUnit.INCH, -59.77,65.07, AngleUnit.DEGREES, 90));
+            setPosition(new Pose2D(DistanceUnit.INCH, resetX,resetY, AngleUnit.DEGREES, 90));
         }
         if(opMode.gamepad1.aWasPressed())
         {
-            setPosition(new Pose2D(DistanceUnit.INCH, -59.77,65.07, AngleUnit.DEGREES, 180));
+            setPosition(new Pose2D(DistanceUnit.INCH, resetX,resetY, AngleUnit.DEGREES, 180));
         }
 
         pos = odo.getPosition();

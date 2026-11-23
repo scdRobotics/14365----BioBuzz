@@ -66,6 +66,7 @@ public class TurretController extends ComponentControllerBase
         turretMotor.setPower(0);
     }
 
+    float helpMe = 0;
     @Override
     public void tick()
     {
@@ -79,19 +80,15 @@ public class TurretController extends ComponentControllerBase
         double thetaRobot = goalPos.getHeading(AngleUnit.RADIANS);
 
         Pose2D pos = Odometry.getPosition();
-        double deltaX = pos.getX(inch) - goalPos.getX(inch) + turretXOffset*Math.cos(thetaRobot) - turretYOffset*Math.sin(thetaRobot);
-        double deltaY = pos.getY(inch) - (pos.getY(inch) > 0 ? goalPos.getY(inch) : -goalPos.getY(inch)) + turretYOffset*Math.cos(thetaRobot) - turretXOffset*Math.sin(thetaRobot);
+        double deltaX = pos.getX(inch) - goalPos.getX(inch) ;//+ turretXOffset*Math.cos(thetaRobot) - turretYOffset*Math.sin(thetaRobot);
+        double deltaY = pos.getY(inch) - (pos.getY(inch) > 0 ? goalPos.getY(inch) : -goalPos.getY(inch)) ;//+ turretYOffset*Math.cos(thetaRobot) - turretXOffset*Math.sin(thetaRobot);
 
         //atan2 returns -pi to pi
         double fieldAngle = Math.atan2(deltaY, deltaX);
         double turretAngle = fieldAngle - thetaRobot;
 
-        //double realAngle = pos.getHeading(AngleUnit.RADIANS) +71*Math.PI/90;
-        //double laucherX = pos.getX(inch) + turretDistance*Math.cos(realAngle);
-        //double laucherY = pos.getY(inch) + turretDistance*Math.sin(realAngle);
-
         //0 to 2pi
-        turretAngle -= Math.PI;
+        //turretAngle += Math.PI;
         double servoAngle = 2.75 * turretAngle;
         //0 to 1
         servoAngle /= (2*Math.PI);
@@ -102,6 +99,16 @@ public class TurretController extends ComponentControllerBase
         }
         if(bPressed) turretMotor.setVelocity(-300);
         opMode.telemetry.addData("velocity", turretMotor.getVelocity());
-        turretServo.setPosition(servoAngle);
+
+
+
+        if(opMode.gamepad1.y) helpMe += 0.01f;
+        if(opMode.gamepad1.x) helpMe -= 0.01f;
+
+        if(opMode.gamepad1.left_bumper)turretServo.setPosition(0.5 + helpMe);
+        else turretServo.setPosition(servoAngle);
+
+        opMode.telemetry.addData("buttoned angle", 0.5 + helpMe);
+        opMode.telemetry.addData("servoAngle", servoAngle);
     }
 }
